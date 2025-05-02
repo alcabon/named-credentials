@@ -2,55 +2,55 @@
 
 Here is a Mermaid diagram illustrating the modern Named Credential framework, highlighting the relationships between components and detailing the configuration for common OAuth 2.0 flows:
 
-Extrait de code
-
-graph TD  
-    subgraph Callout Initiation & Endpoint  
-        Apex/Flow \-- "Uses callout:NC\_Name/path" \--\> NC  
+```mermaid
+graph TD
+    subgraph Callout Initiation & Endpoint
+        Apex/Flow -- "Uses callout:NC_Name/path" --> NC
     end
 
-    subgraph Authentication Framework  
-        NC \-- "1. Links to" \--\> EC  
-        EC \-- "2. Has 1..N" \--\> P  
-        P \-- "3. Granted Access Via" \--\> PS  
-        PS \-- "Assigned To" \--\> User  
+    subgraph Authentication Framework
+        NC -- "1. Links to" --> EC
+        EC -- "2. Has 1..N" --> P
+        P -- "3. Granted Access Via" --> PS
+        PS -- "Assigned To" --> User
     end
 
-    subgraph Authentication Details & Flows  
-        EC \-- "Protocol: OAuth 2.0" \--\> OAuthDetails{"OAuth 2.0 Configuration"}  
-        EC \-- "Other Protocols" \--\> OtherProtocols
+    subgraph Authentication Details & Flows
+        EC -- "Protocol: OAuth 2.0" --> OAuthDetails{"OAuth 2.0 Configuration"}
+        EC -- "Other Protocols" --> OtherProtocols
 
-        subgraph OAuth 2.0 Flows \[Configured via EC, Principal & Auth Provider\]  
-            OAuthDetails \-- "Links to (Optional)" \--\> AP
+        subgraph OAuth 2.0 Flows [Configured via EC, Principal & Auth Provider]
+            OAuthDetails -- "Links to (Optional)" --> AP
 
-            OAuthDetails \-- "Flow Type: Browser Flow" \--\> BF  
-            BF \-- "Stores User Tokens" \--\> UEC\["User External Credential"\]  
-            User \-- "Authenticates & Consents" \--\> BF
+            OAuthDetails -- "Flow Type: Browser Flow" --> BF
+            BF -- "Stores User Tokens" --> UEC["User External Credential"]
+            User -- "Authenticates & Consents" --> BF
 
-            OAuthDetails \-- "Flow Type: Client Credentials" \--\> CC
+            OAuthDetails -- "Flow Type: Client Credentials" --> CC
 
-            OAuthDetails \-- "Flow Type: JWT Bearer" \--\> JWT
+            OAuthDetails -- "Flow Type: JWT Bearer" --> JWT
 
-            OAuthDetails \-- "Flow Type: Password Credentials" \--\> PW  
+            OAuthDetails -- "Flow Type: Password Credentials" --> PW
         end
 
-        subgraph Principal Parameter Storage  
-            P \-- "Named Principal" \--\> NPParams  
-            P \-- "Per-User Principal" \--\> PUPParams  
-        end  
+        subgraph Principal Parameter Storage
+            P -- "Named Principal" --> NPParams
+            P -- "Per-User Principal" --> PUPParams
+        end
     end
 
-    style NC fill:\#f9f,stroke:\#333,stroke-width:2px  
-    style EC fill:\#ccf,stroke:\#333,stroke-width:2px  
-    style P fill:\#9cf,stroke:\#333,stroke-width:2px  
-    style PS fill:\#lightgrey,stroke:\#333,stroke-width:1px  
-    style AP fill:\#f9d,stroke:\#333,stroke-width:1px  
-    style UEC fill:\#cfc,stroke:\#333,stroke-width:1px
+    style NC fill:#f9f,stroke:#333,stroke-width:2px
+    style EC fill:#ccf,stroke:#333,stroke-width:2px
+    style P fill:#9cf,stroke:#333,stroke-width:2px
+    style PS fill:#lightgrey,stroke:#333,stroke-width:1px
+    style AP fill:#f9d,stroke:#333,stroke-width:1px
+    style UEC fill:#cfc,stroke:#333,stroke-width:1px
 
-    classDef params font-size:10px,fill:\#fff,stroke:\#ccc,stroke-width:1px  
-    class BF,CC,JWT,PW,NPParams,PUPParams params  
-    classDef keycomp font-weight:bold  
+    classDef params font-size:10px,fill:#fff,stroke:#ccc,stroke-width:1px
+    class BF,CC,JWT,PW,NPParams,PUPParams params
+    classDef keycomp font-weight:bold
     class NC,EC,P keycomp
+```
 
 **Explanation:**
 
