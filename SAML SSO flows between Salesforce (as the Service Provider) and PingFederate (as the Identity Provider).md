@@ -330,3 +330,58 @@ This flow starts when the user initiates login from PingFederate or a PingFedera
   * **Salesforce HTTPS/TLS Certificate.**
 
 This detailed breakdown should give you a much clearer picture of the URLs and certificate usage at each stage of the SAML SSO flows between Salesforce and PingFederate.
+
+---
+
+ou're asking a very good and precise question about where the HTTPS/TLS certificates for Salesforce itself are managed or viewable. Here's how it works:
+
+**1\. For Standard Salesforce Domains (e.g., your-domain.my.salesforce.com, your-domain.lightning.force.com):**
+
+* **Salesforce Manages These:** For the core domains that Salesforce provides and hosts for your organization (like your My Domain, Lightning URLs, etc.), Salesforce automatically provisions and manages the HTTPS/TLS certificates. These certificates ensure that the connection between your users' browsers and the Salesforce servers is encrypted.  
+* **Not Directly Viewable/Manageable in Setup:** You generally do **not** see or manage these specific HTTPS/TLS certificates directly within the Salesforce Setup UI in the same way you manage SAML signing/encryption certificates or certificates for custom domains (see next point). Salesforce handles their lifecycle (issuance, renewal, etc.) for these standard domains.  
+* **How to "See" Them:** You can always view the details of the active HTTPS/TLS certificate for any Salesforce page (or any website) by using your web browser's security features. Typically, you click the padlock icon in the address bar next to the URL, which will allow you to inspect the certificate details (issuer, validity period, subject, etc.).
+
+**2\. For Custom Domains Pointing to Salesforce (e.g., www.yourcompany.com serving an Experience Cloud site or your org):**
+
+* **Customer Managed or Salesforce-Managed Option:** If you have configured a custom domain to serve your Salesforce org or Experience Cloud sites, then you *are* involved in the HTTPS/TLS certificate management for that specific custom domain.  
+* **Viewable/Manageable in Setup:** For these custom domains, you would typically manage the HTTPS/TLS certificate options within Salesforce Setup:  
+  * Go to **Setup \> Domain Management \> Domains**.  
+  * When you add or edit a custom domain, Salesforce provides options for how HTTPS is served.1 This usually includes:  
+    * **Salesforce serves the domain over HTTPS using a Salesforce-managed certificate:** Salesforce provisions and renews a certificate for your custom domain.  
+    * Using your own CA-signed certificate: You can upload your own HTTPS/TLS certificate (and its private key and any intermediates) that you've obtained from a Certificate Authority (CA).2 These uploaded certificates would be managed under **Setup \> Security \> Certificate and Key Management**.  
+* So, in the context of custom domains you bring to Salesforce, you *can* see and manage the associated HTTPS/TLS certificate (or the option for Salesforce to manage it) within the Setup interface.
+
+**In Summary:**
+
+* **Standard Salesforce Domains:** Salesforce handles the HTTPS/TLS certificates. You view them via your browser, not directly in Setup as a manageable item.  
+* **Custom Domains for Salesforce:** You have options to manage the HTTPS/TLS certificates for these within Salesforce Setup, either by uploading your own or using a Salesforce-managed one.
+
+You are correct in your initial understanding that these HTTPS/TLS certificates are distinct from the SAML-specific signing and encryption certificates, which are explicitly managed in "Certificate and Key Management" (for certificates Salesforce uses as an SP or IdP) and "Single Sign-On Settings" (for uploading an external IdP's public SAML signing certificate).
+
+Yes, that's a correct understanding.
+
+When PingFederate interacts with Salesforce endpoints (like the Assertion Consumer Service \- ACS URL) over HTTPS, the security of that HTTPS connection itself is handled by TLS/SSL. Salesforce's servers will present their HTTPS/TLS certificate to establish this secure connection.
+
+**Here's why those HTTPS/TLS certificates are configured and trusted independently of the SAML-specific settings within PingFederate for the Salesforce Service Provider (SP) connection:**
+
+1. **Transport Layer vs. Application Layer Security:**  
+   * HTTPS/TLS Certificates: These secure the transport layer (the pipe through which data flows).1 They ensure that the communication between the client (which could be the user's browser, or in some less common SAML scenarios, PingFederate itself making a direct back-channel call) and the Salesforce server is encrypted and that the client is talking to the authentic Salesforce server.  
+   * **SAML Certificates:** These secure the SAML messages themselves (the content flowing through the pipe). They are used for digital signatures (to verify the origin and integrity of SAML AuthnRequests or Assertions) and encryption (to ensure the confidentiality of the SAML Assertion content).2  
+2. **Trust Establishment for HTTPS/TLS:**  
+   * When PingFederate (or a browser directed by PingFederate) connects to a Salesforce HTTPS URL (e.g., https://\<your-salesforce-domain\>.my.salesforce.com/saml/SSO), Salesforce presents its server's HTTPS/TLS certificate.  
+   * The client (browser or PingFederate's Java runtime environment \- JRE) verifies this certificate against its list of trusted Certificate Authorities (CAs). Salesforce uses publicly trusted CAs for its servers.  
+   * This trust is generally pre-established in the browser's or JRE's default truststore (e.g., cacerts file in the JRE). There's usually no specific action needed *within PingFederate's SAML configuration for Salesforce* to trust Salesforce's standard HTTPS/TLS certificate because it's issued by a well-known CA.  
+   * If Salesforce were using an HTTPS/TLS certificate from a private/internal CA (which is not the case for standard public Salesforce services), then PingFederate's JRE truststore would need to be updated to trust that private CA, but this is a general JRE/server configuration, not a SAML SP connection-specific setting.  
+3. **SAML Configuration in PingFederate:**  
+   * When you configure Salesforce as an SP in PingFederate, you are concerned with SAML protocol details:  
+     * Salesforce's Entity ID.  
+     * Salesforce's Assertion Consumer Service (ACS) URLs (these are HTTPS URLs, but PingFederate cares about the *endpoint address*, not managing the TLS cert for that address).  
+     * The public certificate from Salesforce used for signing SAML AuthnRequests (if Salesforce is configured to sign them).  
+     * The public certificate from Salesforce used for encrypting SAML Assertions sent by PingFederate (if encryption is configured).  
+     * Attribute contract, authentication context, etc.
+
+**In essence:**
+
+PingFederate's SAML configuration for Salesforce deals with *what to put inside the SAML messages* and *where to send them at the application level*. The underlying trust for the *HTTPS connection to Salesforce's domain* relies on standard TLS/SSL procedures and trust anchors, which are generally independent of the specific SAML partnership settings in PingFederate.
+
+So, while PingFederate needs to know Salesforce's ACS *URL* (which is an HTTPS URL), it doesn't typically require you to upload Salesforce's *HTTPS/TLS server certificate* into the SAML SP connection settings. It expects the JRE (and browsers) to handle that part.
