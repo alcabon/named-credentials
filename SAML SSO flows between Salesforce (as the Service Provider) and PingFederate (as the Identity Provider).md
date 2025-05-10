@@ -333,7 +333,9 @@ This detailed breakdown should give you a much clearer picture of the URLs and c
 
 ---
 
-ou're asking a very good and precise question about where the HTTPS/TLS certificates for Salesforce itself are managed or viewable. Here's how it works:
+# HTTPS/TLS certificates for Salesforce itself 
+
+Here's how it works:
 
 **1\. For Standard Salesforce Domains (e.g., your-domain.my.salesforce.com, your-domain.lightning.force.com):**
 
@@ -356,7 +358,11 @@ ou're asking a very good and precise question about where the HTTPS/TLS certific
 * **Standard Salesforce Domains:** Salesforce handles the HTTPS/TLS certificates. You view them via your browser, not directly in Setup as a manageable item.  
 * **Custom Domains for Salesforce:** You have options to manage the HTTPS/TLS certificates for these within Salesforce Setup, either by uploading your own or using a Salesforce-managed one.
 
-You are correct in your initial understanding that these HTTPS/TLS certificates are distinct from the SAML-specific signing and encryption certificates, which are explicitly managed in "Certificate and Key Management" (for certificates Salesforce uses as an SP or IdP) and "Single Sign-On Settings" (for uploading an external IdP's public SAML signing certificate).
+---
+
+# HTTPS/TLS certificates are distinct from the SAML-specific signing and encryption certificates
+
+**These HTTPS/TLS certificates are distinct from the SAML-specific signing and encryption certificates, which are explicitly managed in "Certificate and Key Management" (for certificates Salesforce uses as an SP or IdP) and "Single Sign-On Settings" (for uploading an external IdP's public SAML signing certificate).**
 
 Yes, that's a correct understanding.
 
