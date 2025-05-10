@@ -27,9 +27,9 @@ sequenceDiagram
     participant PF as PingFederate (IdP)
 
     "User/Browser"->>SF: 1. Attempts to access Salesforce resource
-    SF->>"User/Browser": 2. Redirects to PingFederate (IdP) with SAML AuthnRequest \n(SF signs AuthnRequest with its Request Signing Certificate)
+    SF->>"User/Browser": 2. Redirects to PingFederate (IdP) with SAML AuthnRequest <br>(SF signs AuthnRequest with its Request Signing Certificate)
     "User/Browser"->>PF: 3. Sends SAML AuthnRequest to PingFederate SSO URL
-    PF-->>PF: 4. Verifies AuthnRequest signature \n(using SF's public Request Signing Certificate)
+    PF-->>PF: 4. Verifies AuthnRequest signature <br>(using SF's public Request Signing Certificate)
     PF-->>"User/Browser": 5. Prompts for authentication (if no active session)
     "User/Browser"->>PF: 6. Submits credentials
     PF-->>PF: 7. Authenticates user
@@ -38,7 +38,7 @@ sequenceDiagram
     PF->>"User/Browser": 9. Sends SAML Assertion (via HTTP POST to SF ACS URL)
     "User/Browser"->>SF: 10. Submits SAML Assertion to Salesforce ACS URL
     SF-->>SF: 11. Verifies Assertion signature (using PF's public IdP Signing Certificate)
-    SF-->>SF: 12. Decrypts Assertion if encrypted \n(using SF's private Assertion Decryption Certificate)
+    SF-->>SF: 12. Decrypts Assertion if encrypted <br>(using SF's private Assertion Decryption Certificate)
     SF-->>SF: 13. Processes Assertion, identifies user, creates session
     SF->>"User/Browser": 14. Grants access to Salesforce resource
 ```
@@ -61,8 +61,8 @@ sequenceDiagram
     note right of PF: (signed with PF's IdP Signing Certificate. <br>Optionally encrypted with SF's Assertion Decryption Certificate)
     PF->>"User/Browser": 6. Sends SAML Assertion (via HTTP POST to SF ACS URL)
     "User/Browser"->>SF: 7. Submits SAML Assertion to Salesforce ACS URL
-    SF-->>SF: 8. Verifies Assertion signature \n(using PF's public IdP Signing Certificate)
-    SF-->>SF: 9. Decrypts Assertion if encrypted \n(using SF's private Assertion Decryption Certificate)
+    SF-->>SF: 8. Verifies Assertion signature <br>(using PF's public IdP Signing Certificate)
+    SF-->>SF: 9. Decrypts Assertion if encrypted <br>(using SF's private Assertion Decryption Certificate)
     SF-->>SF: 10. Processes Assertion, identifies user, creates session
     SF->>"User/Browser": 11. Grants access to Salesforce
 ```
