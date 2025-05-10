@@ -1,3 +1,17 @@
+**Important Notes Before We Start:**
+
+* **Placeholders:** URLs will use placeholders like **https://\<your-salesforce-domain\>.my.salesforce.com**, **https://\<pf-idp-hostname.example.com\>**, and **PartnerSpId=\<Salesforce\_Entity\_ID\>**. You'll need to replace these with your actual configured values.  
+* **HTTPS/TLS Certificates:** All communication should be over HTTPS. This means both Salesforce and PingFederate will have their own HTTPS/TLS certificates to secure the browser-to-server connections. These are standard web server certificates and are distinct from the SAML-specific signing and encryption certificates.  
+  * **Location:** Server-side (Salesforce or PingFederate). Private keys are on the server; public keys (and their chains) are presented to the browser for validation.  
+* **SAML Certificates:**  
+  * **Signing Certificates:** Used to create digital signatures on SAML messages (AuthnRequest, Assertion) to ensure integrity and authenticity.  
+    * **Private Key**: Held by the signing entity (e.g., **Salesforce for AuthnRequest**, **PingFederate for Assertion**). Stored securely on the respective platform.  
+    * **Public Key**: Shared with the verifying entity. Stored in the verifying entity's trust configuration (e.g., PingFederate has Salesforce's public key; Salesforce has PingFederate's public key).  
+  * **Encryption Certificates:** Used to encrypt SAML Assertions (or parts of them) to ensure confidentiality.  
+    * **Public Key**: Held by the encrypting entity (e.g., PingFederate uses Salesforce's public encryption key).  
+    * **Private Key**: Held by the decrypting entity (e.g., Salesforce uses its private decryption key). Stored securely on the platform.  
+* **Metadata Exchange:** The most common and recommended way to exchange public certificates, entity IDs, and endpoint URLs is by exchanging SAML 2.0 metadata files between Salesforce and PingFederate.
+
 Mermaid sequence diagrams to illustrate the SAML SSO flows between Salesforce (as the Service Provider) and PingFederate (as the Identity Provider).
 
 Here are the diagrams for both SP-Initiated and IdP-Initiated SSO:
@@ -208,8 +222,8 @@ This flow starts when the user tries to access Salesforce directly.
 **Step 10: User/Browser \-\>\> SF: Submits SAML Assertion to Salesforce ACS URL**
 
 * **URL Example (Salesforce Assertion Consumer Service URL):**  
-  * Default: https://\<your-salesforce-domain\>.my.salesforce.com/saml/SSO  
-  * Communities/Portals: https://\<your-community-domain\>/saml/SSO or https://\<your-salesforce-domain\>.my.salesforce.com/\<community\_url\_path\>/saml/SSO  
+  * Default: **https://\<your-salesforce-domain\>.my.salesforce.com/saml/SSO**  
+  * Communities/Portals: **https://\<your-community-domain\>/saml/SSO** or **ttps://\<your-salesforce-domain\>.my.salesforce.com/\<community\_url\_path\>/saml/SSO**  
   * This URL is specified in Salesforce's SAML configuration and its metadata.  
 * **Certificates:**  
   * **Salesforce HTTPS/TLS Certificate:** Secures the connection for the browser POSTing the assertion to Salesforce.
