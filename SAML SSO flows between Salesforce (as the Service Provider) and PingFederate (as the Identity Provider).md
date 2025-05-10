@@ -391,3 +391,155 @@ When PingFederate interacts with Salesforce endpoints (like the Assertion Consum
 PingFederate's SAML configuration for Salesforce deals with *what to put inside the SAML messages* and *where to send them at the application level*. The underlying trust for the *HTTPS connection to Salesforce's domain* relies on standard TLS/SSL procedures and trust anchors, which are generally independent of the specific SAML partnership settings in PingFederate.
 
 So, while PingFederate needs to know Salesforce's ACS *URL* (which is an HTTPS URL), it doesn't typically require you to upload Salesforce's *HTTPS/TLS server certificate* into the SAML SP connection settings. It expects the JRE (and browsers) to handle that part.
+
+# SAML Single Logout (SLO) phase
+
+let's detail the SAML Single Logout (SLO) phase involving Salesforce as the Service Provider (SP) and PingFederate as the Identity Provider (IdP). SLO allows a user to log out from a single session and be automatically logged out from all associated SPs and the IdP.
+
+SLO can be initiated either by the SP (Salesforce) or the IdP (PingFederate). Both scenarios rely on the exchange of LogoutRequest and LogoutResponse SAML messages.
+
+**Key SAML URLs and Endpoints:**
+
+* **Salesforce SLO Endpoint:** This is where Salesforce receives LogoutRequest messages from the IdP and where it receives LogoutResponse messages from the IdP.  
+  * Typically: https://\<your-salesforce-domain\>.my.salesforce.com/services/auth/sp/saml2/logout  
+  * *(You can verify this in your Salesforce Single Sign-On Settings under "Single Logout Endpoint" if Salesforce is acting as SP, or this is the endpoint PingFederate would send requests to).*  
+* **PingFederate SLO Endpoint:** This is where PingFederate receives LogoutRequest messages (e.g., from Salesforce) and LogoutResponse messages (e.g., from Salesforce after PingFederate initiated logout).  
+  * Typically: https://\<pf-idp-hostname.example.com\>/idp/SLO.saml2  
+* **PingFederate IdP-Initiated SLO URL:** If a user starts logout directly from PingFederate.  
+  * Typically: https://\<pf-idp-hostname.example.com\>/idp/startSLO.ping
+
+**Certificates Involved in SLO:**
+
+* **Salesforce Request Signing Certificate:** Used by Salesforce to sign LogoutRequest messages it sends (SP-initiated) or LogoutResponse messages it sends (in response to an IdP-initiated logout). This is often the same certificate used for SAML AuthnRequests.  
+  * Private Key: Held by Salesforce.  
+  * Public Key: Configured in PingFederate's SP connection for Salesforce.  
+* **PingFederate IdP Signing Certificate:** Used by PingFederate to sign LogoutRequest messages it sends (IdP-initiated) or LogoutResponse messages it sends (in response to an SP-initiated logout).  
+  * Private Key: Held by PingFederate.  
+  * Public Key: Configured in Salesforce's Single Sign-On Settings for PingFederate.  
+* **HTTPS/TLS Certificates:** As with SSO, all communication is over HTTPS, secured by the respective server's HTTPS/TLS certificates.
+
+### ---
+
+1\. SP-Initiated SLO (User logs out from Salesforce)
+
+This flow starts when the user clicks the logout button within Salesforce.
+
+**Step 1: User Initiates Logout in Salesforce**
+
+* **Actor:** User/Browser.  
+* **Action:** User clicks the standard logout link in the Salesforce UI.  
+* **URL Example:** https://\<your-salesforce-domain\>.my.salesforce.com/secur/logout.jsp  
+  * This internal Salesforce URL then triggers the SAML SLO process if SAML SSO is the active session type and SLO is configured.  
+* **Certificates:** None for this initial browser action, beyond Salesforce's HTTPS/TLS certificate.
+
+**Step 2: Salesforce Sends LogoutRequest to PingFederate**
+
+* **Actor:** Salesforce (SP) \-\> User/Browser \-\> PingFederate (IdP).  
+* **Action:** Salesforce constructs a SAML LogoutRequest, signs it, and sends it to PingFederate's SLO endpoint, usually via an HTTP-Redirect binding (browser redirect).  
+* **SAML Message:** LogoutRequest (contains Issuer=Salesforce Entity ID, NameID of the user, potentially SessionIndex).  
+* **URL Format (HTTP-Redirect Binding):** https://\<pf-idp-hostname.example.com\>/idp/SLO.saml2 ?SAMLRequest=\<Base64URLEncoded\_Deflated\_LogoutRequest\> \&RelayState=\<Optional\_Opaque\_Value\_for\_SF\_to\_track\_response\> \&SigAlg=\<URLEncoded\_SignatureAlgorithmURI\> \&Signature=\<Base64URLEncoded\_Signature\>  
+* **Certificates:**  
+  * **Salesforce Request Signing Certificate (Private Key):** Used by Salesforce to sign the LogoutRequest.  
+  * Salesforce's HTTPS/TLS Certificate.
+
+**Step 3: PingFederate Processes LogoutRequest and Invalidates its Session**
+
+* **Actor:** PingFederate (IdP).  
+* **Action:**  
+  1. Verifies the signature on the LogoutRequest using Salesforce's public signing certificate.  
+  2. Identifies and invalidates the user's session at the IdP.  
+  3. *(If applicable, PingFederate would then initiate logout for other SPs participating in this SSO session. This is IdP-driven SLO propagation, often via front-channel redirects for each SP).*  
+* **Certificates:**  
+  * **Salesforce Request Signing Certificate (Public Key):** Used by PingFederate.
+
+**Step 4: PingFederate Sends LogoutResponse to Salesforce**
+
+* **Actor:** PingFederate (IdP) \-\> User/Browser \-\> Salesforce (SP).  
+* **Action:** After processing the logout (and any downstream SP logouts), PingFederate constructs a SAML LogoutResponse, signs it, and sends it back to Salesforce's SLO endpoint, usually via HTTP-Redirect.  
+* **SAML Message:** LogoutResponse (contains Issuer=PingFederate Entity ID, Status of IdP logout, InResponseTo referencing the ID of Salesforce's LogoutRequest).  
+* **URL Format (HTTP-Redirect Binding):** https://\<your-salesforce-domain\>.my.salesforce.com/services/auth/sp/saml2/logout ?SAMLResponse=\<Base64URLEncoded\_Deflated\_LogoutResponse\> \&RelayState=\<RelayState\_from\_Request\_if\_any\> \&SigAlg=\<URLEncoded\_SignatureAlgorithmURI\> \&Signature=\<Base64URLEncoded\_Signature\>  
+* **Certificates:**  
+  * **PingFederate IdP Signing Certificate (Private Key):** Used by PingFederate to sign the LogoutResponse.  
+  * PingFederate's HTTPS/TLS Certificate.
+
+**Step 5: Salesforce Processes LogoutResponse and Finalizes Logout**
+
+* **Actor:** Salesforce (SP).  
+* **Action:**  
+  1. Verifies the signature on the LogoutResponse using PingFederate's public signing certificate.  
+  2. Processes the status.  
+  3. Finalizes its local session invalidation.  
+  4. Redirects the user to a Salesforce logout confirmation page or the login page.  
+* **URL Example (Final landing page):** https://\<your-salesforce-domain\>.my.salesforce.com/ (or a configured logout page)  
+* **Certificates:**  
+  * **PingFederate IdP Signing Certificate (Public Key):** Used by Salesforce.  
+  * Salesforce's HTTPS/TLS Certificate.
+
+### ---
+
+2\. IdP-Initiated SLO (User logs out from PingFederate)
+
+This flow starts when the user initiates logout from a PingFederate portal or an application that triggers PingFederate's global logout.
+
+**Step 1: User Initiates Logout at PingFederate**
+
+* **Actor:** User/Browser.  
+* **Action:** User clicks a logout link on a PingFederate-controlled page or an application integrated with PingFederate's SLO.  
+* **URL Example:** https://\<pf-idp-hostname.example.com\>/idp/startSLO.ping  
+* **Certificates:** None for this initial browser action, beyond PingFederate's HTTPS/TLS certificate.
+
+**Step 2: PingFederate Invalidates its Session and Sends LogoutRequest to Salesforce (and other SPs)**
+
+* **Actor:** PingFederate (IdP) \-\> User/Browser \-\> Salesforce (SP).  
+* **Action:**  
+  1. PingFederate invalidates its local user session.  
+  2. For each SP involved in the user's current SSO session (including Salesforce), PingFederate generates a signed LogoutRequest.  
+  3. It sends these requests to the respective SPs' SLO endpoints, typically sequentially via front-channel browser redirects.  
+* **SAML Message (to Salesforce):** LogoutRequest (contains Issuer=PingFederate Entity ID, NameID, SessionIndex).  
+* **URL Format (HTTP-Redirect Binding to Salesforce):** https://\<your-salesforce-domain\>.my.salesforce.com/services/auth/sp/saml2/logout ?SAMLRequest=\<Base64URLEncoded\_Deflated\_LogoutRequest\> \&RelayState=\<Optional\_Opaque\_Value\_for\_PF\_to\_track\_response\> \&SigAlg=\<URLEncoded\_SignatureAlgorithmURI\> \&Signature=\<Base64URLEncoded\_Signature\>  
+* **Certificates:**  
+  * **PingFederate IdP Signing Certificate (Private Key):** Used by PingFederate to sign the LogoutRequest.  
+  * PingFederate's HTTPS/TLS Certificate.
+
+**Step 3: Salesforce Processes LogoutRequest and Invalidates its Session**
+
+* **Actor:** Salesforce (SP).  
+* **Action:**  
+  1. Verifies the signature on the LogoutRequest using PingFederate's public signing certificate.  
+  2. Identifies and invalidates the user's session in Salesforce.  
+* **Certificates:**  
+  * **PingFederate IdP Signing Certificate (Public Key):** Used by Salesforce.
+
+**Step 4: Salesforce Sends LogoutResponse to PingFederate**
+
+* **Actor:** Salesforce (SP) \-\> User/Browser \-\> PingFederate (IdP).  
+* **Action:** Salesforce constructs a SAML LogoutResponse, signs it, and sends it back to PingFederate's SLO endpoint.  
+* **SAML Message:** LogoutResponse (contains Issuer=Salesforce Entity ID, Status of SP logout, InResponseTo referencing PingFederate's LogoutRequest ID).  
+* **URL Format (HTTP-Redirect Binding):** https://\<pf-idp-hostname.example.com\>/idp/SLO.saml2 ?SAMLResponse=\<Base64URLEncoded\_Deflated\_LogoutResponse\> \&RelayState=\<RelayState\_from\_Request\_if\_any\> \&SigAlg=\<URLEncoded\_SignatureAlgorithmURI\> \&Signature=\<Base64URLEncoded\_Signature\>  
+* **Certificates:**  
+  * **Salesforce Request Signing Certificate (Private Key):** Used by Salesforce to sign the LogoutResponse.  
+  * Salesforce's HTTPS/TLS Certificate.
+
+**Step 5: PingFederate Processes LogoutResponse from Salesforce**
+
+* **Actor:** PingFederate (IdP).  
+* **Action:**  
+  1. Verifies the signature on the LogoutResponse using Salesforce's public signing certificate.  
+  2. Records the logout status from Salesforce.  
+  3. If there are other SPs in the SLO sequence, PingFederate continues to process their responses or awaits them.  
+  4. Once all SPs have responded or timed out, PingFederate directs the user to a final logout confirmation page or back to a login page.  
+* **URL Example (Final landing page):** https://\<pf-idp-hostname.example.com\>/sso/logged\_out. современных (example, specific to PingFederate config)  
+* **Certificates:**  
+  * **Salesforce Request Signing Certificate (Public Key):** Used by PingFederate.  
+  * PingFederate's HTTPS/TLS Certificate.
+
+---
+
+**Configuration Notes:**
+
+* **Enable SLO:** Ensure Single Logout is enabled in both Salesforce's Single Sign-On configuration and in PingFederate's SP connection settings for Salesforce.  
+* **Endpoint URLs:** Accurately configure the respective SLO endpoint URLs in both systems.  
+* **Certificate Exchange:** Ensure the correct public signing certificates are exchanged and configured for verifying signatures on LogoutRequest and LogoutResponse messages.  
+* **Bindings:** Both IdP and SP must agree on and support the same SAML binding (e.g., HTTP-Redirect, HTTP-POST) for SLO messages. Front-channel SLO typically uses HTTP-Redirect.
+
+Implementing SLO correctly is crucial for ensuring a secure and complete logout experience for users in an SSO environment.
