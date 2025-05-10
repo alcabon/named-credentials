@@ -20,7 +20,7 @@ sequenceDiagram
     "User/Browser"->>PF: 6. Submits credentials
     PF-->>PF: 7. Authenticates user
     PF-->>PF: 8. Generates SAML Assertion
-    note right of PF: Assertion is signed with PF's IdP Signing Certificate. \nOptionally encrypted with SF's Assertion Decryption Certificate.
+    note right of PF: Assertion is signed with PF's IdP Signing Certificate. <br> Optionally encrypted with SF's Assertion Decryption Certificate.
     PF->>"User/Browser": 9. Sends SAML Assertion (via HTTP POST to SF ACS URL)
     "User/Browser"->>SF: 10. Submits SAML Assertion to Salesforce ACS URL
     SF-->>SF: 11. Verifies Assertion signature (using PF's public IdP Signing Certificate)
@@ -39,12 +39,12 @@ sequenceDiagram
     participant PF as PingFederate (IdP)
     participant SF as Salesforce (SP)
 
-    "User/Browser"->>PF: 1. Accesses PingFederate IdP-initiated SSO URL for Salesforce \n(e.g., /idp/startSSO.ping?PartnerSpId=Salesforce_Entity_ID)
+    "User/Browser"->>PF: 1. Accesses PingFederate IdP-initiated SSO URL for Salesforce <br>(e.g., /idp/startSSO.ping?PartnerSpId=Salesforce_Entity_ID)
     PF-->>"User/Browser": 2. Prompts for authentication (if no active session)
     "User/Browser"->>PF: 3. Submits credentials (if prompted)
     PF-->>PF: 4. Authenticates user (if credentials submitted or session exists)
     PF-->>PF: 5. Generates SAML Assertion
-    note right of PF: (signed with PF's IdP Signing Certificate. \nOptionally encrypted with SF's Assertion Decryption Certificate)
+    note right of PF: (signed with PF's IdP Signing Certificate. <br>Optionally encrypted with SF's Assertion Decryption Certificate)
     PF->>"User/Browser": 6. Sends SAML Assertion (via HTTP POST to SF ACS URL)
     "User/Browser"->>SF: 7. Submits SAML Assertion to Salesforce ACS URL
     SF-->>SF: 8. Verifies Assertion signature \n(using PF's public IdP Signing Certificate)
