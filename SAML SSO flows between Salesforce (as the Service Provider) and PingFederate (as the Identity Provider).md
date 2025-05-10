@@ -133,7 +133,7 @@ Okay, this is a great request for adding more practical detail\! Here's a breakd
 
 ### ---
 
-SP-Initiated SSO Flow (Salesforce to PingFederate)
+# SP-Initiated SSO Flow (Salesforce to PingFederate)
 
 This flow starts when the user tries to access Salesforce directly.
 
@@ -243,7 +243,7 @@ This flow starts when the user tries to access Salesforce directly.
 
 ### ---
 
-IdP-Initiated SSO Flow (PingFederate to Salesforce)
+# IdP-Initiated SSO Flow (PingFederate to Salesforce)
 
 This flow starts when the user initiates login from PingFederate or a PingFederate-linked portal.
 
